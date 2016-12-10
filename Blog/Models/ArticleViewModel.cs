@@ -21,10 +21,11 @@ namespace Blog.Models
 
         public string AuthorId { get; set; }
 
-        [ForeignKey("Category")]
+        
         public int CategoryId { get; set; }
 
-        public ICollection<Category> Categories { get; set; }
+        public ICollection<Article> Articles { get; set; }
+        public List<Category> Categories { get;  set; }
 
         
 

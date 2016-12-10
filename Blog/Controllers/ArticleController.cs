@@ -51,15 +51,19 @@ namespace Blog.Controllers
 
         //
         //GET: Article/Create
+        
         [Authorize]
         public ActionResult Create()
         {
-            using(var db = new BlogDbContext())
+            using (var database = new BlogDbContext())
             {
                 var model = new ArticleViewModel();
-                model.Categories = db.Categories.OrderBy(c => c.Name).ToList();
+                model.Categories = database.Categories
+                    .OrderBy(c => c.Name)
+                    .ToList();
+
+                return View(model);
             }
-            return View();
         }
 
         //

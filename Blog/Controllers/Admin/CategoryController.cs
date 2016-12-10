@@ -33,7 +33,7 @@ namespace Blog.Controllers.Admin
 
 
         [HttpPost]
-        public ActionResult Create([Bind(Include ="Id, Name")]Category category)
+        public ActionResult Create(Category category)
         {
             if (ModelState.IsValid)
             {
