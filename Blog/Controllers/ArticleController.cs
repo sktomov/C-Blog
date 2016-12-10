@@ -54,6 +54,11 @@ namespace Blog.Controllers
         [Authorize]
         public ActionResult Create()
         {
+            using(var db = new BlogDbContext())
+            {
+                var model = new ArticleViewModel();
+                model.Categories = db.Categories.OrderBy(c => c.Name).ToList();
+            }
             return View();
         }
 
@@ -61,7 +66,7 @@ namespace Blog.Controllers
         //POST: Article/Create
         [HttpPost]
         [Authorize]
-        public ActionResult Create(Article article)
+        public ActionResult Create(ArticleViewModel model)
         {
             if (ModelState.IsValid)
             {
@@ -71,6 +76,7 @@ namespace Blog.Controllers
                     var authorId = database.Users.Where(u => u.UserName == this.User.Identity.Name)
                         .First().Id;
                     //Set articles author
+                    var article = new Article(authorId, model.Title, model.Content, model.CategoryId);
                     article.AuthorId = authorId;
                     //Save articles in DB
                     database.Articles.Add(article);
@@ -80,7 +86,7 @@ namespace Blog.Controllers
                 }
 
             } 
-            return View(article);
+            return View(model);
         }
 
         public ActionResult Edit(int? id)
@@ -101,6 +107,8 @@ namespace Blog.Controllers
                 model.Id = article.Id;
                 model.Title = article.Title;
                 model.Content = article.Content;
+                model.CategoryId = article.CategoryId;
+                model.Categories = db.Categories.OrderBy(c => c.Name).ToList();
 
                 return View(model);
             }
@@ -117,6 +125,7 @@ namespace Blog.Controllers
                     var article = db.Articles.FirstOrDefault(a => a.Id == model.Id);
                     article.Title = model.Title;
                     article.Content = model.Content;
+                    article.CategoryId = model.CategoryId;
                     db.Entry(article).State = EntityState.Modified;
                     db.SaveChanges();
                     return RedirectToAction("Index");
