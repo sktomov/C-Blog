@@ -23,7 +23,7 @@ namespace Blog.Controllers
             using (var database = new BlogDbContext())
             {
                 //Get articles from database
-                var articles = database.Articles.Include(a => a.Author).ToList();
+                var articles = database.Articles.Include(a => a.Author).Include(t => t.Tags).ToList();
 
                 return View(articles);
             }
@@ -39,7 +39,7 @@ namespace Blog.Controllers
             }
             using (var database = new BlogDbContext())
             {
-                var article = database.Articles.Where(a => a.Id == id).Include(a => a.Author).First();
+                var article = database.Articles.Where(a => a.Id == id).Include(a => a.Author).Include(t => t.Tags).First();
                 if(article == null)
                 {
                     return HttpNotFound();
@@ -83,6 +83,8 @@ namespace Blog.Controllers
                     var article = new Article(authorId, model.Title, model.Content, model.CategoryId);
                     article.AuthorId = authorId;
                     //Save articles in DB
+
+                    this.SetArticleTags(article, model, database);
                     database.Articles.Add(article);
                     database.SaveChanges();
 
@@ -114,6 +116,8 @@ namespace Blog.Controllers
                 model.CategoryId = article.CategoryId;
                 model.Categories = db.Categories.OrderBy(c => c.Name).ToList();
 
+                model.Tags = string.Join(", ", article.Tags.Select(t => t.Name));
+
                 return View(model);
             }
             
@@ -130,12 +134,34 @@ namespace Blog.Controllers
                     article.Title = model.Title;
                     article.Content = model.Content;
                     article.CategoryId = model.CategoryId;
+                    this.SetArticleTags(article, model, db);
                     db.Entry(article).State = EntityState.Modified;
                     db.SaveChanges();
                     return RedirectToAction("Index");
                 }
             }
             return View(model);
+        }
+
+        private void SetArticleTags(Article article, ArticleViewModel model, BlogDbContext db)
+        {
+            var tagsString = model.Tags.Split(new char[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.ToLower()).Distinct();
+
+            article.Tags.Clear();
+
+            foreach (var tagString in tagsString)
+            {
+                Tag tag = db.Tags.FirstOrDefault(t => t.Name.Equals(tagString));
+
+                if(tag == null)
+                {
+                    tag = new Tag() { Name = tagString };
+                    db.Tags.Add(tag);
+                }
+
+                article.Tags.Add(tag);
+            }
+
         }
 
         //Get Article/Delete
@@ -147,12 +173,14 @@ namespace Blog.Controllers
             }
             using (var db = new BlogDbContext())
             {
-                var article = db.Articles.Where(a => a.Id == id).Include(a => a.Author).First();
+                var article = db.Articles.Where(a => a.Id == id).Include(a => a.Author).Include(a => a.Category).First();
 
                 if (!IsUserAuthorizedToEdit(article))
                 {
                     return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
                 }
+
+                ViewBag.TagsString = string.Join(", ", article.Tags.Select(t => t.Name));
 
                 if (article == null)
                 {
